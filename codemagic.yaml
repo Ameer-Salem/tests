@@ -1,4 +1,13 @@
-scripts:
+workflows:
+  ios-unsigned-build:
+    name: iOS Unsigned Build (for Sideloadly)
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
       - name: Get Flutter packages
         script: flutter pub get
         
@@ -22,3 +31,12 @@ scripts:
           cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
           cd build/ios/iphoneos
           zip -r app-unsigned.ipa Payload
+    artifacts:
+      - build/ios/iphoneos/app-unsigned.ipa
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com
+        notify:
+          success: true
+          failure: true
