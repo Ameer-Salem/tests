@@ -1,27 +1,16 @@
-workflows:
-  ios-unsigned-build:
-    name: iOS Unsigned Build (for Sideloadly)
-    max_build_duration: 30
-    instance_type: mac_mini_m2
-    environment:
-      flutter: stable
-      xcode: latest
-      cocoapods: default
-    scripts:
+scripts:
       - name: Get Flutter packages
         script: flutter pub get
         
-      - name: Force Xcode to ignore code signing
+      - name: Inject Code Signing Overrides
         script: |
-          # Switch from Automatic to Manual provisioning to bypass Xcode's team check
-          sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' ios/Runner.xcodeproj/project.pbxproj || true
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj || true
-          
-          # Strip out any hardcoded Development Team IDs
-          sed -i '' 's/DEVELOPMENT_TEAM = .*;/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj || true
-          
-          # Force the Code Signing Identity to be completely empty
-          sed -i '' 's/CODE_SIGN_IDENTITY = .*;/CODE_SIGN_IDENTITY = "";/g' ios/Runner.xcodeproj/project.pbxproj || true
+          # Force Xcode to completely bypass signing by injecting variables directly into Flutter's config
+          echo "CODE_SIGNING_ALLOWED=NO" >> ios/Flutter/Release.xcconfig
+          echo "CODE_SIGNING_REQUIRED=NO" >> ios/Flutter/Release.xcconfig
+          echo "CODE_SIGN_IDENTITY=" >> ios/Flutter/Release.xcconfig
+          echo "DEVELOPMENT_TEAM=" >> ios/Flutter/Release.xcconfig
+          echo "PROVISIONING_PROFILE_SPECIFIER=" >> ios/Flutter/Release.xcconfig
+          echo "EXPANDED_CODE_SIGN_IDENTITY=" >> ios/Flutter/Release.xcconfig
           
       - name: Build unsigned iOS app
         script: |
@@ -33,13 +22,3 @@ workflows:
           cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
           cd build/ios/iphoneos
           zip -r app-unsigned.ipa Payload
-          
-    artifacts:
-      - build/ios/iphoneos/app-unsigned.ipa
-    publishing:
-      email:
-        recipients:
-          - your-email@example.com
-        notify:
-          success: true
-          failure: true
